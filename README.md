@@ -13,12 +13,11 @@
 
 ## 1. 本地运行
 
-工作目录：`C:/Users/suqin/Documents/ChatGPT/滑块验证`。
+以下命令均以项目根目录（包含 `manage.py` 和 `pyproject.toml` 的目录）为起点；两个终端都从该目录开始执行。
 
 ### 后端（终端一）
 
 ```powershell
-cd "C:/Users/suqin/Documents/ChatGPT/滑块验证"
 python -m venv .venv
 # PowerShell 禁止运行激活脚本时，无需激活，直接使用虚拟环境 Python。
 .venv/Scripts/python.exe -m pip install -e .
@@ -30,7 +29,7 @@ python -m venv .venv
 ### 前端（终端二）
 
 ```powershell
-cd "C:/Users/suqin/Documents/ChatGPT/滑块验证/frontend"
+cd frontend
 npm.cmd ci
 npm.cmd run dev
 ```
@@ -41,10 +40,10 @@ npm.cmd run dev
 
 ## 2. 集成到已有 DRF 项目
 
-在目标项目的 Python 环境中安装本目录：
+激活目标项目的 Python 环境后，在本项目根目录执行安装：
 
 ```powershell
-python -m pip install -e "C:/Users/suqin/Documents/ChatGPT/滑块验证[redis]"
+python -m pip install -e ".[redis]"
 ```
 
 也可以构建 wheel 后安装，或将 `drf_slider_captcha` 包复制到项目中。
