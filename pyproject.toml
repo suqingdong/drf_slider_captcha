@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "drf-slider-captcha"
-version = "0.1.1"
+version = "0.1.2"
 description = "One-time puzzle CAPTCHA API for Django REST Framework and rc-slider-captcha"
 readme = "README.md"
 requires-python = ">=3.10"
