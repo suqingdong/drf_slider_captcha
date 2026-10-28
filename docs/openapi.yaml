@@ -1,0 +1,203 @@
+openapi: 3.0.3
+info:
+  title: DRF Slider CAPTCHA API
+  version: 0.1.0
+  description: >-
+    Challenge verification issues a short-lived one-time credential.
+    Your business endpoint must consume it with consume_captcha_token.
+    Sizes, purposes, TTLs and limits below describe the default configuration.
+servers:
+  - url: http://127.0.0.1:8000
+paths:
+  /api/captcha/challenge/:
+    get:
+      operationId: createSliderChallenge
+      summary: 获取随机拼图验证码
+      parameters:
+        - in: query
+          name: purpose
+          schema:
+            type: string
+            enum: [login, register, reset_password]
+            default: login
+      responses:
+        '200':
+          description: New challenge. Response has Cache-Control private, no-store.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Challenge'
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '429':
+          $ref: '#/components/responses/Throttled'
+        '503':
+          $ref: '#/components/responses/CacheUnavailable'
+  /api/captcha/verify/:
+    post:
+      operationId: verifySliderChallenge
+      summary: 校验拼图，签发一次性业务凭证
+      description: >-
+        A syntactically valid attempt consumes the challenge even on failure.
+        x is puzzle displacement in native image pixels, not sliderOffsetX.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyInput'
+      responses:
+        '200':
+          description: Pass the credential to the protected business endpoint.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, captchaToken, expiresIn]
+                properties:
+                  success:
+                    type: boolean
+                    enum: [true]
+                  captchaToken:
+                    type: string
+                    minLength: 43
+                    maxLength: 43
+                  expiresIn:
+                    type: integer
+                    example: 120
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '429':
+          $ref: '#/components/responses/Throttled'
+        '503':
+          $ref: '#/components/responses/CacheUnavailable'
+components:
+  schemas:
+    Challenge:
+      type: object
+      required: [challengeId, bgUrl, puzzleUrl, bgSize, puzzleSize, expiresIn, purpose]
+      properties:
+        challengeId:
+          type: string
+          format: uuid
+        bgUrl:
+          type: string
+          description: JPEG data URL.
+        puzzleUrl:
+          type: string
+          description: PNG data URL; full-height transparent puzzle strip.
+        bgSize:
+          type: object
+          required: [width, height]
+          properties:
+            width:
+              type: integer
+              example: 320
+            height:
+              type: integer
+              example: 160
+        puzzleSize:
+          type: object
+          required: [width, height, top, left]
+          properties:
+            width:
+              type: integer
+              example: 60
+            height:
+              type: integer
+              example: 160
+            top:
+              type: integer
+              enum: [0]
+            left:
+              type: integer
+              enum: [0]
+        expiresIn:
+          type: integer
+          example: 120
+        purpose:
+          type: string
+          example: login
+    VerifyInput:
+      type: object
+      required: [challengeId, x, duration]
+      properties:
+        challengeId:
+          type: string
+          format: uuid
+        x:
+          type: number
+          minimum: 0
+          maximum: 1024
+          description: Finite puzzle displacement in native pixels.
+        duration:
+          type: integer
+          minimum: 0
+          maximum: 3600000
+          description: Milliseconds. Server also applies configured motion limits.
+        y:
+          type: number
+          minimum: -10000
+          maximum: 10000
+        sliderOffsetX:
+          type: number
+          minimum: 0
+          maximum: 10000
+        trail:
+          type: array
+          maxItems: 512
+          description: Viewport [x,y] pairs, not [x,y,t] triples.
+          items:
+            type: array
+            minItems: 2
+            maxItems: 2
+            items:
+              type: number
+              minimum: -10000
+              maximum: 10000
+        targetType:
+          type: string
+          enum: [puzzle, button]
+        errorCount:
+          type: integer
+          minimum: 0
+          maximum: 100000
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          example: expired_or_used
+        message:
+          type: string
+        errors:
+          type: object
+          additionalProperties: true
+  responses:
+    InvalidRequest:
+      description: Invalid fields, failed challenge, expired or used challenge.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    CacheUnavailable:
+      description: Cache failure. Verification is denied, never bypassed.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Throttled:
+      description: DRF rate limit exceeded.
+      headers:
+        Retry-After:
+          schema:
+            type: string
+          description: Seconds until retry is allowed.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              detail:
+                type: string

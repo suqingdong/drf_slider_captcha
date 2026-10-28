@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+.venv/
+.env
+*.sqlite3
+.references/
+node_modules/
+dist/
+build/
+*.egg-info/
+.coverage
+htmlcov/
+.npm-cache/
+.lockfile-build/
